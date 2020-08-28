@@ -1,0 +1,3 @@
+Testing the timing accuracy and precision of audio/spoken responses in JavaScript. Written using the [jsPsych framework](https://www.jspsych.org/).
+* "Standard" method: Start audio recording, then update the page HTML with the stimulus. Use the start of the audio file as the stim onset time, and calculate audio RT as the delay between the start of the audio file and audio response onset.
+* Web Audio method: Start audio recording using Web Audio, update the page HTML, and use the Web Audio clock to get the time of the stim display relative to the recording start. Calculate audio RT as the delay between this stim onset time and the audio response onset.
