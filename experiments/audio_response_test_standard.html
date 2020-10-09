@@ -24,8 +24,8 @@
             type: 'survey-text',
             preamble: '<p>Timing test for audio recordings: standard method</p>',
             questions: [
-                {prompt: 'Enter the number of trials to run, e.g. 100:', required: true, name: 'n_trials', columns: 6, rows: 1},
-                {prompt: 'Enter the recording duration in ms, e.g. 1000:', required: true, name: 'buffer_length', columns: 6, rows: 1},
+                {prompt: '<p>Enter the number of trials to run, e.g. 100:</p>', required: true, name: 'n_trials', columns: 6, rows: 1},
+                {prompt: '<p>Enter the recording duration in ms, e.g. 1000:<br>Must be at least 100 ms.</p>', required: true, name: 'buffer_length', columns: 6, rows: 1},
             ],
             button_label: 'Next',
             on_finish: function(data) {
@@ -71,6 +71,11 @@
             allow_playback: false,
             wait_for_mic_approval: true,
             response_ends_trial: true,
+            on_load: function() {
+                set_timeout(function() {
+                    document.getElementById("jspsych-image-audio-response-stimulus").style.visibility.hidden;
+                }, 100);
+            },
             post_trial_gap: function() {
                 return jsPsych.randomization.sampleWithoutReplacement(iti_durations,1);
             }
