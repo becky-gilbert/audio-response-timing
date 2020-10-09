@@ -16,7 +16,8 @@
         var timeline = [];
         var n_trials = null;
         var buffer_length = null;
-        var image = 'img/test_image_white.png';
+        var image_white = 'img/test_image_white.png';
+        var image_black = 'img/test_image.png';
         var trial_count = 0;
         var iti_durations = [500,600,700,800,900,1000];
 
@@ -25,7 +26,7 @@
             preamble: '<p>Timing test for audio recordings: standard method</p>',
             questions: [
                 {prompt: '<p>Enter the number of trials to run, e.g. 100:</p>', required: true, name: 'n_trials', columns: 6, rows: 1},
-                {prompt: '<p>Enter the recording duration in ms, e.g. 1000:<br>Must be at least 100 ms.</p>', required: true, name: 'buffer_length', columns: 6, rows: 1},
+                {prompt: '<p>Enter the recording duration in ms, e.g. 1000:<br>Must be at least 300 ms.</p>', required: true, name: 'buffer_length', columns: 6, rows: 1},
                 {prompt: '<p>Enter the browser info.</p>', required: true, name: 'browser', columns: 40, rows: 1},
                 {prompt: '<p>Enter the device and OS info.</p>', required: true, name: 'device_os', columns: 40, rows: 1},
             ],
@@ -50,7 +51,7 @@
 
         var audio_check = {
             type: 'image-audio-response',
-            stimulus: image,
+            stimulus: image_white,
             buffer_length: 2000,
             allow_playback: true,
             wait_for_mic_approval: true,
@@ -68,14 +69,14 @@
 
         var trial = {
             type: 'image-audio-response',
-            stimulus: image,
+            stimulus: image_white,
             buffer_length: function() {return buffer_length;},
             allow_playback: false,
             wait_for_mic_approval: true,
             response_ends_trial: true,
             on_load: function() {
                 setTimeout(function() {
-                    document.getElementById("jspsych-image-audio-response-stimulus").style.visibility = "hidden";
+                    document.getElementById("jspsych-image-audio-response-stimulus").src = image_black;
                 }, 300);
             },
             post_trial_gap: function() {
@@ -105,7 +106,7 @@
 
         jsPsych.init({
             timeline: timeline,
-            preload_images: [image]
+            preload_images: [image_white, image_black]
         });
 
     </script>
