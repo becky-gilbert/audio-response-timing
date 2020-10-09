@@ -74,9 +74,9 @@
             wait_for_mic_approval: true,
             response_ends_trial: true,
             on_load: function() {
-                set_timeout(function() {
-                    document.getElementById("jspsych-image-audio-response-stimulus").style.visibility.hidden;
-                }, 100);
+                setTimeout(function() {
+                    document.getElementById("jspsych-image-audio-response-stimulus").style.visibility = "hidden";
+                }, 300);
             },
             post_trial_gap: function() {
                 return jsPsych.randomization.sampleWithoutReplacement(iti_durations,1);
