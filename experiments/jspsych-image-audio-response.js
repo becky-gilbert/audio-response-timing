@@ -13,6 +13,8 @@ jsPsych.plugins["image-audio-response"] = (function() {
 
     let plugin = {};
 
+    jsPsych.pluginAPI.registerPreload('image-audio-response', 'stimulus', 'image');
+
     plugin.info = {
         name: 'image-audio-response',
         description: 'Present an image and retrieve an audio response',
@@ -149,6 +151,18 @@ jsPsych.plugins["image-audio-response"] = (function() {
                 pretty_name: 'Wait for mic approval',
                 default: false,
                 description: 'If true, the trial will not start until the participant approves the browser mic request.'
+            },
+            no_mic_message: {
+                type: jsPsych.plugins.parameterType.HTML_STRING,
+                pretty_name: 'No mic message',
+                default: 'Audio recording not possible.',
+                description: 'Message to show if no mic is found, or if the browser is not compatible.'
+            }, 
+            no_mic_message_duration: {
+                type: jsPsych.plugins.parameterType.INT,
+                pretty_name: 'No mic message duration',
+                default: 3000,
+                description: 'Duration to show the no mic message, if no mic is found or the browser is not compatible.'
             }
         }
     };
@@ -167,163 +181,201 @@ jsPsych.plugins["image-audio-response"] = (function() {
         };
         let recorder = null;
         let start_time = null;
+        var mic = false;
 
-        // add stimulus
-		var html = '<img src="'+trial.stimulus+'" id="jspsych-image-audio-response-stimulus" style="';
-		if(trial.stimulus_height !== null){
-		  html += 'height:'+trial.stimulus_height+'px; '
-		  if(trial.stimulus_width == null && trial.maintain_aspect_ratio){
-			html += 'width: auto; ';
-		  }
-		}
-		if(trial.stimulus_width !== null){
-		  html += 'width:'+trial.stimulus_width+'px; '
-		  if(trial.stimulus_height == null && trial.maintain_aspect_ratio){
-			html += 'height: auto; ';
-		  }
-		}
-		html +='"></img>';
-
-        // add prompt if there is one
-        if (trial.prompt !== null) {
-            html += trial.prompt;
-        }
-
-        // add recording off light
-        html += '<div id="jspsych-image-audio-response-recording-container">'+trial.recording_light_off+'</div>';
-
-        // add audio element container with hidden audio element
-        html += '<div id="jspsych-image-audio-response-audio-container"><audio id="jspsych-image-audio-response-audio" controls style="visibility:hidden;"></audio></div>';
-
-        // add button element with hidden buttons
-        html += '<div id="jspsych-image-audio-response-buttons"><button id="jspsych-image-audio-response-okay" class="jspsych-audio-response-button jspsych-btn" style="display: inline-block; margin:'+trial.margin_vertical+' '+trial.margin_horizontal+'; visibility:hidden;">Okay</button><button id="jspsych-image-audio-response-rerecord" class="jspsych-audio-response-button jspsych-btn" style="display: inline-block; margin:'+trial.margin_vertical+' '+trial.margin_horizontal+'; visibility:hidden;">Rerecord</button></div>';
-
-        function start_trial() {
-            display_element.innerHTML = html;
-            document.querySelector('#jspsych-image-audio-response-okay').addEventListener('click', end_trial);
-            document.querySelector('#jspsych-image-audio-response-rerecord').addEventListener('click', start_recording);
-            // Add visual indicators to let people know we're recording
-            document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = trial.recording_light;
-            // trial start time
-            start_time = performance.now();
-            // set timer to hide image if stimulus duration is set
-            if (trial.stimulus_duration !== null) {
-                jsPsych.pluginAPI.setTimeout(function() {
-                    display_element.querySelector('#jspsych-image-audio-response-stimulus').style.visibility = 'hidden';
-                }, trial.stimulus_duration);
+        // check if device has a mic, and if browser is compatible
+        // from https://stackoverflow.com/questions/23288918/check-if-user-has-webcam-or-not-using-javascript-only/23289012
+        function detect_mic(callback) {
+            let md = navigator.mediaDevices;
+            if (!md || !md.enumerateDevices || !md.getUserMedia) {
+                callback(false);
             }
-            if (!trial.wait_for_mic_approval) {
-                start_recording();
-            }
-        }
-
-        // audio element processing
-        function start_recording() {
-            // hide existing playback elements
-            playbackElements.forEach(function (id) {
-                let element = document.getElementById(id);
-                element.style.visibility = 'hidden';
+            md.enumerateDevices().then(function(devices) {
+                var hasmic = devices.some(function(device) {
+                    return 'audioinput' === device.kind;
+                });
+                callback(hasmic);
             });
-            navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(process_audio);
-            if (!trial.wait_for_mic_approval) {
-                // Add visual indicators to let people know we're recording
-                document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = trial.recording_light;
-            }
         }
-        
-        // function to handle responses by the subject
-        function process_audio(stream) {
 
-            if (trial.wait_for_mic_approval) {
-                if (start_time === null) {
-                    start_trial();
-                } else {
-                    document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = trial.recording_light;
+        detect_mic(function(has_mic) {
+
+            if (!has_mic) {
+
+                // no mic, or browser is not compatible, so display a message and then end the trial
+                display_element.innerHTML = trial.no_mic_message;
+                jsPsych.pluginAPI.setTimeout(function() {
+                    end_trial();
+                }, trial.no_mic_message_duration);
+
+            } else {
+
+                mic = true;
+                
+                // add stimulus
+                var html = '<img src="'+trial.stimulus+'" id="jspsych-image-audio-response-stimulus" style="';
+                if(trial.stimulus_height !== null){
+                html += 'height:'+trial.stimulus_height+'px; '
+                if(trial.stimulus_width == null && trial.maintain_aspect_ratio){
+                    html += 'width: auto; ';
                 }
-            } 
+                }
+                if(trial.stimulus_width !== null){
+                html += 'width:'+trial.stimulus_width+'px; '
+                if(trial.stimulus_height == null && trial.maintain_aspect_ratio){
+                    html += 'height: auto; ';
+                }
+                }
+                html +='"></img>';
 
-            // This code largely thanks to skyllo at
-            // http://air.ghost.io/recording-to-an-audio-file-using-html5-and-js/
+                // add prompt if there is one
+                if (trial.prompt !== null) {
+                    html += trial.prompt;
+                }
 
-            // store streaming data chunks in array
-            const chunks = [];
-            // create media recorder instance to initialize recording
-            // Note: the MediaRecorder function is not supported in Safari or Edge
-            recorder = new MediaRecorder(stream);
-            recorder.data = [];
-            recorder.wrapUp = false;
-            recorder.ondataavailable = function(e) {
-                // add stream data to chunks
-                chunks.push(e.data);
-                if (recorder.wrapUp) {
-                    if (typeof trial.postprocessing !== 'undefined') {
-                        trial.postprocessing(chunks)
-                            .then(function(processedData) {
-                                onRecordingFinish(processedData);
-                            });
-                    } else {
-                        // should never fire - trial.postprocessing should use the default function if
-                        // not passed in via trial parameters
-                        onRecordingFinish(chunks);
+                // add recording off light
+                html += '<div id="jspsych-image-audio-response-recording-container">'+trial.recording_light_off+'</div>';
+
+                // add audio element container with hidden audio element
+                html += '<div id="jspsych-image-audio-response-audio-container"><audio id="jspsych-image-audio-response-audio" controls style="visibility:hidden;"></audio></div>';
+
+                // add button element with hidden buttons
+                html += '<div id="jspsych-image-audio-response-buttons"><button id="jspsych-image-audio-response-okay" class="jspsych-audio-response-button jspsych-btn" style="display: inline-block; margin:'+trial.margin_vertical+' '+trial.margin_horizontal+'; visibility:hidden;">Okay</button><button id="jspsych-image-audio-response-rerecord" class="jspsych-audio-response-button jspsych-btn" style="display: inline-block; margin:'+trial.margin_vertical+' '+trial.margin_horizontal+'; visibility:hidden;">Rerecord</button></div>';
+
+                function start_trial() {
+                    display_element.innerHTML = html;
+                    document.querySelector('#jspsych-image-audio-response-okay').addEventListener('click', end_trial);
+                    document.querySelector('#jspsych-image-audio-response-rerecord').addEventListener('click', start_recording);
+                    // Add visual indicators to let people know we're recording
+                    document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = trial.recording_light;
+                    // trial start time
+                    start_time = performance.now();
+                    // set timer to hide image if stimulus duration is set
+                    if (trial.stimulus_duration !== null) {
+                        jsPsych.pluginAPI.setTimeout(function() {
+                            display_element.querySelector('#jspsych-image-audio-response-stimulus').style.visibility = 'hidden';
+                        }, trial.stimulus_duration);
+                    }
+                    if (!trial.wait_for_mic_approval) {
+                        start_recording();
                     }
                 }
-            };
 
-            // start recording with 1 second time between receiving 'ondataavailable' events
-            recorder.start(1000);
-            // setTimeout to stop recording after 4 seconds
-            setTimeout(function() {
-                // this will trigger one final 'ondataavailable' event and set recorder state to 'inactive'
-                recorder.stop();
-                recorder.wrapUp = true;
-            }, trial.buffer_length);
-        }
+                // audio element processing
+                function start_recording() {
+                    // hide existing playback elements
+                    playbackElements.forEach(function (id) {
+                        let element = document.getElementById(id);
+                        element.style.visibility = 'hidden';
+                    });
+                    navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(process_audio);
+                    if (!trial.wait_for_mic_approval) {
+                        // Add visual indicators to let people know we're recording
+                        document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = trial.recording_light;
+                    }
+                }
+                
+                // function to handle responses by the subject
+                function process_audio(stream) {
 
-        function showPlaybackTools(data) {
-            // Audio Player
-            let playerDiv = display_element.querySelector('#jspsych-image-audio-response-audio-container');
-            let url;
-            if (data instanceof Blob) {
-                const blob = new Blob(data, { type: 'audio/webm' });
-                url = (URL.createObjectURL(blob));
-            } else {
-                url = data;
+                    if (trial.wait_for_mic_approval) {
+                        if (start_time === null) {
+                            start_trial();
+                        } else {
+                            document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = trial.recording_light;
+                        }
+                    } 
+
+                    // This code largely thanks to skyllo at
+                    // http://air.ghost.io/recording-to-an-audio-file-using-html5-and-js/
+
+                    // store streaming data chunks in array
+                    const chunks = [];
+                    // create media recorder instance to initialize recording
+                    // Note: the MediaRecorder function is not supported in Safari or Edge
+                    recorder = new MediaRecorder(stream);
+                    recorder.data = [];
+                    recorder.wrapUp = false;
+                    recorder.ondataavailable = function(e) {
+                        // add stream data to chunks
+                        chunks.push(e.data);
+                        if (recorder.wrapUp) {
+                            if (typeof trial.postprocessing !== 'undefined') {
+                                trial.postprocessing(chunks)
+                                    .then(function(processedData) {
+                                        onRecordingFinish(processedData);
+                                    });
+                            } else {
+                                // should never fire - trial.postprocessing should use the default function if
+                                // not passed in via trial parameters
+                                onRecordingFinish(chunks);
+                            }
+                        }
+                    };
+
+                    // start recording with 1 second time between receiving 'ondataavailable' events
+                    recorder.start(1000);
+                    // setTimeout to stop recording after 4 seconds
+                    setTimeout(function() {
+                        // this will trigger one final 'ondataavailable' event and set recorder state to 'inactive'
+                        recorder.stop();
+                        recorder.wrapUp = true;
+                    }, trial.buffer_length);
+                }
+
+                function showPlaybackTools(data) {
+                    // Audio Player
+                    let playerDiv = display_element.querySelector('#jspsych-image-audio-response-audio-container');
+                    let url;
+                    if (data instanceof Blob) {
+                        const blob = new Blob(data, { type: 'audio/webm' });
+                        url = (URL.createObjectURL(blob));
+                    } else {
+                        url = data;
+                    }
+                    let player = playerDiv.querySelector('#jspsych-image-audio-response-audio');
+                    player.src = url;
+                    player.style.visibility = "visible";
+                    // Okay/rerecord buttons
+                    let buttonDiv = document.querySelector('#jspsych-image-audio-response-buttons');
+                    let okay = buttonDiv.querySelector('#jspsych-image-audio-response-okay');
+                    let rerecord = buttonDiv.querySelector('#jspsych-image-audio-response-rerecord');
+                    okay.style.visibility = 'visible';
+                    rerecord.style.visibility = 'visible';
+                    // Save ids of things we want to hide later:
+                    playbackElements = [player.id, okay.id, rerecord.id];
+                }
+
+                function onRecordingFinish(data) {
+                    // switch to the off visual indicator
+                    let light = document.querySelector('#jspsych-image-audio-response-recording-container');
+                    if (light !== null)
+                        light.innerHTML = trial.recording_light_off;
+                    // measure rt
+                    let end_time = performance.now();
+                    let rt = end_time - start_time;
+                    response.audio_data = data.str;
+                    response.audio_url = data.url;
+                    response.rt = rt;
+
+                    if (trial.response_ends_trial) {
+                        end_trial();
+                    } else if (trial.allow_playback) {  // only allow playback if response doesn't end trial
+                        showPlaybackTools(response.audio_url);
+                    } else { 
+                        // fallback in case response_ends_trial and allow_playback are both false, 
+                        // which would mean the trial never ends
+                        end_trial();
+                    }
+                }
+
+                if (trial.wait_for_mic_approval) {
+                    start_recording();
+                } else {
+                    start_trial();
+                }
             }
-            let player = playerDiv.querySelector('#jspsych-image-audio-response-audio');
-            player.src = url;
-            player.style.visibility = "visible";
-            // Okay/rerecord buttons
-            let buttonDiv = document.querySelector('#jspsych-image-audio-response-buttons');
-            let okay = buttonDiv.querySelector('#jspsych-image-audio-response-okay');
-            let rerecord = buttonDiv.querySelector('#jspsych-image-audio-response-rerecord');
-            okay.style.visibility = 'visible';
-            rerecord.style.visibility = 'visible';
-            // Save ids of things we want to hide later:
-            playbackElements = [player.id, okay.id, rerecord.id];
-        }
-
-        function onRecordingFinish(data) {
-            // switch to the off visual indicator
-            let light = document.querySelector('#jspsych-image-audio-response-recording-container');
-            if (light !== null)
-                light.innerHTML = trial.recording_light_off;
-            // measure rt
-            let end_time = performance.now();
-            let rt = end_time - start_time;
-            response.audio_data = data.str;
-            response.audio_url = data.url;
-            response.rt = rt;
-
-            if (trial.response_ends_trial) {
-                end_trial();
-            } else if (trial.allow_playback) {  // only allow playback if response doesn't end trial
-                showPlaybackTools(response.audio_url);
-            } else { 
-                // fallback in case response_ends_trial and allow_playback are both false, 
-                // which would mean the trial never ends
-                end_trial();
-            }
-        }
+        });
 
         // function to end trial when it is time
         function end_trial() {
@@ -334,7 +386,8 @@ jsPsych.plugins["image-audio-response"] = (function() {
             let trial_data = {
                 "rt": response.rt,
                 "stimulus": trial.stimulus,
-                "audio_data": response.audio_data
+                "audio_data": response.audio_data,
+                "has_mic": mic
             };
 
             // clear the display
@@ -342,12 +395,6 @@ jsPsych.plugins["image-audio-response"] = (function() {
 
             // move on to the next trial
             jsPsych.finishTrial(trial_data);
-        }
-
-        if (trial.wait_for_mic_approval) {
-            start_recording();
-        } else {
-            start_trial();
         }
 
     };
