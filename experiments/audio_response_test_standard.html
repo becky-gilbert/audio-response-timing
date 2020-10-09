@@ -7,13 +7,16 @@
         <script src="jspsych-survey-text.js"></script>
         <script src="jspsych-html-button-response.js"></script>
         <link href="css/jspsych.css" rel="stylesheet">
+        <style>
+            .jspsych-content-wrapper {background-color: black; color: white;}
+        </style>
     </head>
     <body></body>
     <script>
         var timeline = [];
         var n_trials = null;
         var buffer_length = null;
-        var image = 'img/test_image.png';
+        var image = 'img/test_image_white.png';
         var trial_count = 0;
         var iti_durations = [500,600,700,800,900,1000];
 
