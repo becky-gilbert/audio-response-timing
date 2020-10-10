@@ -29,6 +29,7 @@
                 {prompt: '<p>Enter the recording duration in ms, e.g. 1000:<br>Must be at least 300 ms.</p>', required: true, name: 'buffer_length', columns: 6, rows: 1},
                 {prompt: '<p>Enter the browser info.</p>', required: true, name: 'browser', columns: 40, rows: 1},
                 {prompt: '<p>Enter the device and OS info.</p>', required: true, name: 'device_os', columns: 40, rows: 1},
+                {prompt: '<p>Enter the intended RT.</p>', required: true, name: 'intended_rt', columns: 6, rows: 1}
             ],
             button_label: 'Next',
             on_finish: function(data) {
