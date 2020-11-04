@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>audio response timing</title>
+    <script src="jspsych.js"></script>
+    <script src="jspsych-image-audio-response.js"></script>
+    <script src="jspsych-survey-text.js"></script>
+    <script src="jspsych-html-button-response.js"></script>
+    <link href="css/jspsych.css" rel="stylesheet">
+    <script src="jatos.js"></script>
+    <style>
+        .jspsych-content-wrapper {
+            background-color: black;
+            color: white;
+        }
+    </style>
+</head>
+
+<body></body>
+<script>
+    jatos.onLoad(function () {
+        // get JATOS result ID - used in the audio file names
+        var result_id = jatos.studyResultId;
+
+        var timeline = [];
+        var n_trials = null;
+        var buffer_length = null;
+        var image_white = 'img/test_image_white.png';
+        var trial_count = 0;
+        var iti_durations = [500, 600, 700, 800, 900, 1000];
+
+        var enter_trial_info = {
+            type: 'survey-text',
+            preamble: '<p>Timing test for audio recordings: standard method</p>',
+            questions: [
+                { prompt: '<p>Enter the number of trials to run, e.g. 100:</p>', required: true, name: 'n_trials', columns: 6, rows: 1 },
+                { prompt: '<p>Enter the recording duration in ms, e.g. 1000:<br>Must be at least 300 ms.</p>', required: true, name: 'buffer_length', columns: 6, rows: 1 },
+                { prompt: '<p>Enter the browser info.</p>', required: true, name: 'browser', columns: 40, rows: 1 },
+                { prompt: '<p>Enter the device and OS info.</p>', required: true, name: 'device_os', columns: 40, rows: 1 },
+                { prompt: '<p>Enter the intended RT.</p>', required: true, name: 'intended_rt', columns: 6, rows: 1 }
+            ],
+            button_label: 'Next',
+            on_finish: function (data) {
+                n_trials = parseInt(JSON.parse(data.responses).n_trials, 10);
+                buffer_length = parseInt(JSON.parse(data.responses).buffer_length, 10);
+            }
+        };
+        timeline.push(enter_trial_info);
+
+        var audio_check_start = {
+            type: 'html-button-response',
+            stimulus: '<p>Now you will be able to record a test sound<br>and then play it back to check that the audio has been captured clearly.</p>' +
+                '<p>After you press the "Start the recording check" button,<br>you will be need to approve the browser&#39;s request to use the mic.</p>' +
+                '<p>Then the browser will record audio for 2 seconds.</p>' +
+                '<p>You will then see an audio player and you will be able to play back your recording.</p>' +
+                '<p>You can re-record as many times as necessary to ensure that,<br>during the test, the audio will be captured clearly.</p>',
+            choices: ['Start the recording check']
+        };
+        timeline.push(audio_check_start);
+
+        var audio_check = {
+            type: 'image-audio-response',
+            stimulus: image_white,
+            buffer_length: 2000,
+            allow_playback: true,
+            wait_for_mic_approval: true,
+            response_ends_trial: false
+        };
+        timeline.push(audio_check);
+
+        var start = {
+            type: 'html-button-response',
+            stimulus: '<p>Press the "Start" button to start the audio recording test.</p>',
+            choices: ['Start'],
+            post_trial_gap: 1000
+        };
+        timeline.push(start);
+
+        var trial = {
+            type: 'image-audio-response',
+            stimulus: image_white,
+            stimulus_duration: 100,
+            buffer_length: function () { return buffer_length; },
+            allow_playback: false,
+            wait_for_mic_approval: false,
+            response_ends_trial: true,
+            postprocessing: save_file_to_jatos,
+            post_trial_gap: function () {
+                return jsPsych.randomization.sampleWithoutReplacement(iti_durations, 1);
+            }
+        };
+
+        var trial_loop = {
+            timeline: [trial],
+            loop_function: function () {
+                trial_count++;
+                if (trial_count == n_trials) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+        };
+        timeline.push(trial_loop);
+
+        var end = {
+            type: 'html-button-response',
+            stimulus: '<p>The test has finished.</p>',
+            choices: ['Done']
+        };
+        timeline.push(end);
+
+        jsPsych.init({
+            timeline: timeline,
+            preload_images: [image_white],
+            on_finish: function () {
+                var results = jsPsych.data.get().json();
+                jatos.submitResultData(results, jatos.startNextComponent);
+            }
+        });
+
+        function save_file_to_jatos(data) {
+            return new Promise(function (resolve) {
+                const blob = new Blob(data, { type: 'audio/webm; codecs=opus' });
+                // create URL from the audio blob, which is used to replay the audio file (if allow_playback is true)
+                let url = URL.createObjectURL(blob);
+                // save the file name with the JATOS result ID and trial number
+                var filename = result_id + "_" + trial_count + ".webm";
+                jatos.uploadResultFile(blob, filename);
+                // need to pass an object with the URL and data string to the onRecordingFinish function
+                // - url allows the audio to be replayed if playback is true
+                // - str is used to either save the audio data as base64 string or save the filename to the jsPsych trial data
+                var trial_data = { url: url, str: filename };
+                resolve(trial_data);
+            });
+        }
+    });
+</script>
+</html>
