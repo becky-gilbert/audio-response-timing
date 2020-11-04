@@ -313,9 +313,9 @@ jsPsych.plugins["image-audio-response"] = (function() {
                         }
                     };
 
-                    // start recording with 1 second time between receiving 'ondataavailable' events
-                    recorder.start(1000);
-                    // setTimeout to stop recording after 4 seconds
+                    // start recording 
+                    recorder.start();
+                    // setTimeout to stop recording after buffer_length
                     setTimeout(function() {
                         // this will trigger one final 'ondataavailable' event and set recorder state to 'inactive'
                         recorder.stop();
