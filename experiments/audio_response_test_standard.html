@@ -17,7 +17,6 @@
         var n_trials = null;
         var buffer_length = null;
         var image_white = 'img/test_image_white.png';
-        var image_black = 'img/test_image.png';
         var trial_count = 0;
         var iti_durations = [500,600,700,800,900,1000];
 
@@ -71,15 +70,11 @@
         var trial = {
             type: 'image-audio-response',
             stimulus: image_white,
+            stimulus_duration: 100,
             buffer_length: function() {return buffer_length;},
             allow_playback: false,
             wait_for_mic_approval: true,
             response_ends_trial: true,
-            on_load: function() {
-                setTimeout(function() {
-                    document.getElementById("jspsych-image-audio-response-stimulus").src = image_black;
-                }, 300);
-            },
             post_trial_gap: function() {
                 return jsPsych.randomization.sampleWithoutReplacement(iti_durations,1);
             }
@@ -107,7 +102,7 @@
 
         jsPsych.init({
             timeline: timeline,
-            preload_images: [image_white, image_black]
+            preload_images: [image_white]
         });
 
     </script>
