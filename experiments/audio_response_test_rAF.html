@@ -19,7 +19,7 @@
         var image_white = 'img/test_image_white.png';
         var trial_count = 0;
         var iti_durations = [500,600,700,800,900,1000];
-        
+
         jsPsych.data.addProperties({version: 'rAF'});
 
         var enter_trial_info = {
@@ -57,7 +57,6 @@
             buffer_length: 2000,
             allow_playback: true,
             wait_for_mic_approval: true,
-            response_ends_trial: false,
         };
         timeline.push(audio_check);
 
@@ -76,7 +75,6 @@
             buffer_length: function() {return buffer_length;},
             allow_playback: false,
             wait_for_mic_approval: true,
-            response_ends_trial: true,
             post_trial_gap: function() {
                 return jsPsych.randomization.sampleWithoutReplacement(iti_durations,1);
             }

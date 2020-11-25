@@ -56,8 +56,7 @@
             stimulus: image_white,
             buffer_length: 2000,
             allow_playback: true,
-            wait_for_mic_approval: true,
-            response_ends_trial: false,
+            wait_for_mic_approval: true
         };
         timeline.push(audio_check);
 
@@ -76,7 +75,6 @@
             buffer_length: function() {return buffer_length;},
             allow_playback: false,
             wait_for_mic_approval: true,
-            response_ends_trial: true,
             post_trial_gap: function() {
                 return jsPsych.randomization.sampleWithoutReplacement(iti_durations,1);
             }
