@@ -203,10 +203,9 @@ jsPsych.plugins["image-audio-response-rAF"] = (function() {
         let recorder = null;
         let start_time = null;
         var mic = false;
-var frame_time_estimate = null;
+        var frame_time_estimate = null;
+        var last_frame_time = null;
         var recording_on_html, recording_off_html;
-
-
 
         // check if device has a mic, and if browser is compatible
         // from https://stackoverflow.com/questions/23288918/check-if-user-has-webcam-or-not-using-javascript-only/23289012
@@ -311,15 +310,11 @@ var frame_time_estimate = null;
                             document.querySelector('#jspsych-image-audio-response-okay').addEventListener('click', end_trial);
                             document.querySelector('#jspsych-image-audio-response-rerecord').addEventListener('click', start_recording);
 
-                            // set timer to hide image if stimulus duration is set
-                            if (trial.stimulus_duration !== null) {
-                                jsPsych.pluginAPI.setTimeout(function() {
-                                    display_element.querySelector('#jspsych-image-audio-response-stimulus').style.visibility = 'hidden';
-                                }, trial.stimulus_duration);
-                            }
                             if (!trial.wait_for_mic_approval) {
                                 start_recording();
                             }
+                            // After recording has been approved by user, add visual indicators to let people know we're recording
+                            document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = recording_on_html;
                             // record the start time 
                             start_time = timestamp;
                             // reset the frame time estimate
@@ -332,25 +327,25 @@ var frame_time_estimate = null;
                 }
 
                 function checkForTimeout(timestamp) {
-                  // get the estimated length of a single frame
+                    // get the estimated length of a single frame
                     frame_time_estimate = timestamp - last_frame_time;
                     // calculate an estimate of how long the stimulus has been on the screen
                     var curr_duration = timestamp - start_time;
                     // check if the current duration is at least as long as the intended duration
                     // minus half the estimated frame time. this helps avoid displaying the stimulus
                     // for one too many frames.
-                    if (curr_duration >= trial.buffer_length - frame_time_estimate/2) { // if within ~half a frame of the recording length
-                        if (trial.allow_playback) {  // only allow playback if response doesn't end trial
-                            showPlaybackTools(response.audio_url);
-                        } else { 
-
-                            end_trial();
-                        }
+                    if (trial.stimulus_duration !== null && (curr_duration >= trial.stimulus_duration - frame_time_estimate/2)) { // if within ~half a frame of the stim display duration
+                        display_element.querySelector('#jspsych-image-audio-response-stimulus').style.visibility = 'hidden';
+                        // TO DO: this conditional will keep being true after stim is hidden
+                    } 
+                    if (curr_duration >= (trial.buffer_length - (frame_time_estimate/2))) {
+                        // this will trigger one final 'ondataavailable' event and set recorder state to 'inactive'
+                        recorder.stop();
+                        recorder.wrapUp = true;
                     } else {
                         last_frame_time = timestamp;
                         window.requestAnimationFrame(checkForTimeout);
                     }
-
                 }
 
                 // audio element processing
@@ -361,10 +356,6 @@ var frame_time_estimate = null;
                         element.style.visibility = 'hidden';
                     });
                     navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(process_audio);
-                    if (!trial.wait_for_mic_approval) {
-                        // Add visual indicators to let people know we're recording
-                        document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = trial.recording_light;
-                    }
                 }
                 
                 // function to start of recording, after getUserMedia request has been approved
@@ -373,8 +364,6 @@ var frame_time_estimate = null;
                     if (trial.wait_for_mic_approval && start_time === null) {
                         start_trial();
                     }
-                    // After recording has been approved by user, add visual indicators to let people know we're recording
-                    document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = recording_on_html;
 
                     // This code largely thanks to skyllo at
                     // http://air.ghost.io/recording-to-an-audio-file-using-html5-and-js/
@@ -405,12 +394,6 @@ var frame_time_estimate = null;
 
                     // start recording with 1 second time between receiving 'ondataavailable' events
                     recorder.start(1000);
-                    // setTimeout to stop recording 
-                    setTimeout(function() {
-                        // this will trigger one final 'ondataavailable' event and set recorder state to 'inactive'
-                        recorder.stop();
-                        recorder.wrapUp = true;
-                    }, trial.buffer_length);
                 }
 
                 function showPlaybackTools(data) {
@@ -448,13 +431,11 @@ var frame_time_estimate = null;
                     let end_time = performance.now();
                     let rt = end_time - start_time;
                     response.audio_data = data.str;
-
                     response.rt = rt;
 
                     if (trial.allow_playback) {  
                         showPlaybackTools(data);
                     } else { 
-
                         end_trial();
                     }
                 }
