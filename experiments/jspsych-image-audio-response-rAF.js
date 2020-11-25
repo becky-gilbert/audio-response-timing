@@ -184,7 +184,6 @@ jsPsych.plugins["image-audio-response-rAF"] = (function() {
         };
         let recorder = null;
         let start_time = null;
-        var frame_time_estimate = null;
         var last_frame_time = null;
         var mic = false;
 
