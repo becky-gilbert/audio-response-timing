@@ -2,21 +2,24 @@
  * jspsych-image-audio-response
  * Matt Jaquiery, Feb 2018 (https://github.com/mjaquiery)
  * Becky Gilbert, Apr 2020 (https://github.com/becky-gilbert)
+ * Dorian Minors
  *
  * plugin for displaying a stimulus and getting an audio response
+ * 
+ * requestAnimationFrame version for syncing recording and image display 
  *
  * documentation: docs.jspsych.org
  *
  **/
 
-jsPsych.plugins["image-audio-response"] = (function() {
+jsPsych.plugins["image-audio-response-rAF"] = (function() {
 
     let plugin = {};
 
-    jsPsych.pluginAPI.registerPreload('image-audio-response', 'stimulus', 'image');
+    jsPsych.pluginAPI.registerPreload('image-audio-response-rAF', 'stimulus', 'image');
 
     plugin.info = {
-        name: 'image-audio-response',
+        name: 'image-audio-response-rAF',
         description: 'Present an image and retrieve an audio response',
         parameters: {
             stimulus: {
