@@ -30,6 +30,8 @@
         var trial_count = 0;
         var iti_durations = [500, 600, 700, 800, 900, 1000];
 
+        jsPsych.data.addProperties({version: 'standard'});
+
         var enter_trial_info = {
             type: 'survey-text',
             preamble: '<p>Timing test for audio recordings: standard method</p>',
