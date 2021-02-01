@@ -44,7 +44,7 @@ FileName = FileName{1};
 outputfilename = ['visual_check_',FileName,'.bmp'];
 
 % load file
-filename = [PathName,FileName];
+filename = [PathName,filesep,FileName];
 [f,fs] = audioread(filename);
 
 % original sound file

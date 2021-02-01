@@ -1,4 +1,4 @@
-function [res,meanThreshold] = detect_voice_onset_loop(FileName, PathName, beginFreq, endFreq, thresh4, startvalue, stepw, produce_plot, produce_txtfile)
+function [res,meanThreshold] = detect_voice_onset_loop(FileName, PathName, beginFreq, endFreq, thresh4, startvalue, stepw, produce_plot, customYlim, produce_txtfile)
 
 % The function detect_voice_onset_loop.m is designed to detect the onset of
 % a voice (or other auditory signal) in a recorded .wav sound file.
@@ -64,7 +64,7 @@ for rrr=1:length(FileName)
     disp(rrr)
     
     % load file
-    filename = [PathName,FileName{rrr}];
+    filename = [PathName,filesep,FileName{rrr}];
     [f,fs] = audioread(filename);
     
     % Determine total number of samples in audio file
@@ -128,7 +128,7 @@ if produce_plot
     xlabel('soundfiles')
     ylabel('milliseconds')
     xlim([1 length(res)])
-    ylim([0 0.5])
+    if exist('customYlim','var'); ylim([0 customYlim]); end
     hold on
     plot(xlim, [1 1]*meanThreshold, ':k'); hold off
     saveas(h,outputfilename2,'bmp')
