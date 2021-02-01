@@ -34,17 +34,17 @@ t = struct(); % set up a structure for temp data
 
 % set up variables
 rootdir = pwd; %% root directory - used to inform directory mappings and will save plots here
-datadir = fullfile(rootdir,'results','standard','wait_for_mic_approval_false','delay_0ms','chrome','resultID_11'); % where are the files?
-%datadir = fullfile(rootdir,'results','standard','wait_for_mic_approval_false','delay_0ms','firefox','resultID_12'); % where are the files?
+%datadir = fullfile(rootdir,'results','standard','wait_for_mic_approval_false','delay_0ms','chrome','resultID_11'); % where are the files?
+datadir = fullfile(rootdir,'results','standard','wait_for_mic_approval_false','delay_0ms','firefox','resultID_12'); % where are the files?
 p.visualcheck = 0; % 0 = loop through all files to get an overview, 1 = detailed plots on a single file (each option has settings, see below)
 
 % if ~p.visualcheck (i.e. getting overview of all files)
 p.datafilepattern = '*.wav'; % specify *.extension
 p.produce_threshplot = 1; % produce and save plot of onsets (happens in function)
-p.customYlim = 0.5; % custom ylim for comparing plots
+customYlim = 0.2; % custom ylim for comparing plots
 p.produce_txtfile = 0; % produce and save textfile of [filenames, onsets] (happens in function)
 p.produce_meanplot = 0; % produce and save a plot of mean with SEM bars (happens in this file)
-p.produce_boxplot = 0; % produce and save a boxplot of onset times (happens in this file)
+p.produce_boxplot = 1; % produce and save a boxplot of onset times (happens in this file)
 
 % if p.visualcheck (i.e. checking a single file in detail)
 p.checkfilename = '11_10.wav';% specify filename with extension
@@ -77,14 +77,14 @@ t.out=regexp(t.folderpath,filesep,'split');
 
 %% loop through files, get names, and pass it to detect_voice_onset_loop
 if ~p.visualcheck
-    [d.onset,d.mean] = detect_voice_onset_loop(d.filenames, t.folderpath, p.beginFreq, p.endFreq, p.thresh4, p.startvalue, p.stepw,p.produce_threshplot,p.customYlim,p.produce_txtfile);
+    [d.onset,d.mean] = detect_voice_onset_loop(d.filenames, t.folderpath, p.beginFreq, p.endFreq, p.thresh4, p.startvalue, p.stepw,p.produce_threshplot,customYlim,p.produce_txtfile);
     d.sem = nansem(d.onset);
     if p.produce_meanplot
         meanplot = figure;
         plot(d.mean,'*')
         hold on
         errorbar(d.mean,d.sem);
-        if exist('p.customYlim','var'); axis([0,2,0,p.customYlim]); end
+        if exist('customYlim','var'); axis([0,2,0,customYlim]); end
         hold off
         t.savename = ['thresholds_meanplot_',t.out{length(t.out)-1},'_filter',num2str(p.beginFreq),'to',num2str(round(p.endFreq/1000)),'k_thresh',num2str(p.thresh4),'_',t.actdat,'.bmp'];
         saveas(meanplot,t.savename,'bmp')
@@ -93,7 +93,7 @@ if ~p.visualcheck
         bxplot = figure;
         hold on
         boxplot(d.onset);
-        if exist('p.customYlim','var'); axis([0,2,0,p.customYlim]); end
+        if exist('customYlim','var'); axis([0,2,0,customYlim]); end
         hold off
         t.savename = ['thresholds_boxplot_',t.out{length(t.out)-1},'_filter',num2str(p.beginFreq),'to',num2str(round(p.endFreq/1000)),'k_thresh',num2str(p.thresh4),'_',t.actdat,'.bmp'];
         saveas(bxplot,t.savename,'bmp')
