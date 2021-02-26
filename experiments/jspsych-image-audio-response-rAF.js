@@ -306,17 +306,21 @@ jsPsych.plugins["image-audio-response-rAF"] = (function() {
                 function start_trial() {
                     window.requestAnimationFrame(function(){
                         window.requestAnimationFrame(function(timestamp) {
-                            display_element.innerHTML = html;
-                            document.querySelector('#jspsych-image-audio-response-okay').addEventListener('click', end_trial);
-                            document.querySelector('#jspsych-image-audio-response-rerecord').addEventListener('click', start_recording);
-
-                            if (!trial.wait_for_mic_approval) {
+                            if (start_time === null) {
+                                display_element.innerHTML = html;
+                                document.querySelector('#jspsych-image-audio-response-okay').addEventListener('click', end_trial);
+                                document.querySelector('#jspsych-image-audio-response-rerecord').addEventListener('click', start_recording);
+                            }
+                            
+                            if (trial.wait_for_mic_approval) {
+                                // if true then recording has been already started, so add visual indicators to let people know we're recording
+                                document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = recording_on_html;
+                                // record the start time 
+                                start_time = timestamp;
+                            } else {
                                 start_recording();
                             }
-                            // After recording has been approved by user, add visual indicators to let people know we're recording
-                            document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = recording_on_html;
-                            // record the start time 
-                            start_time = timestamp;
+                            
                             // reset the frame time estimate
                             frame_time_estimate = null;
                             last_frame_time = start_time;
@@ -334,11 +338,11 @@ jsPsych.plugins["image-audio-response-rAF"] = (function() {
                     // check if the current duration is at least as long as the intended duration
                     // minus half the estimated frame time. this helps avoid displaying the stimulus
                     // for one too many frames.
-                    if (trial.stimulus_duration !== null && (curr_duration >= trial.stimulus_duration - frame_time_estimate/2)) { // if within ~half a frame of the stim display duration
+                    if ((start_time !== null) && trial.stimulus_duration !== null && (curr_duration >= trial.stimulus_duration - frame_time_estimate/2)) { // if within ~half a frame of the stim display duration
                         display_element.querySelector('#jspsych-image-audio-response-stimulus').style.visibility = 'hidden';
                         // TO DO: this conditional will keep being true after stim is hidden
                     } 
-                    if (curr_duration >= (trial.buffer_length - (frame_time_estimate/2))) {
+                    if ((start_time !== null) && curr_duration >= (trial.buffer_length - (frame_time_estimate/2))) {
                         // this will trigger one final 'ondataavailable' event and set recorder state to 'inactive'
                         recorder.stop();
                         recorder.wrapUp = true;
@@ -350,19 +354,29 @@ jsPsych.plugins["image-audio-response-rAF"] = (function() {
 
                 // audio element processing
                 function start_recording() {
-                    // hide existing playback elements
-                    playbackElements.forEach(function (id) {
-                        let element = document.getElementById(id);
-                        element.style.visibility = 'hidden';
-                    });
+                    if (start_time !== null) {
+                        // reset start time
+                        start_time = null;
+                        // hide playback elements
+                        playbackElements.forEach(function (id) {
+                            let element = document.getElementById(id);
+                            element.style.visibility = 'hidden';
+                        });
+                        // add visual indicators to let people know we're recording
+                        document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = recording_on_html;
+                    }
                     navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(process_audio);
                 }
                 
                 // function to start of recording, after getUserMedia request has been approved
                 function process_audio(stream) {
 
-                    if (trial.wait_for_mic_approval && start_time === null) {
+                    if (trial.wait_for_mic_approval) {
                         start_trial();
+                    } else {
+                        // once recording has been approved, start the timer and add visual indicators to let people know we're recording
+                        start_time = performance.now();
+                        document.querySelector('#jspsych-image-audio-response-recording-container').innerHTML = recording_on_html;
                     }
 
                     // This code largely thanks to skyllo at
