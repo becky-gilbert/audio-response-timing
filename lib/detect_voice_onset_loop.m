@@ -99,7 +99,7 @@ for rrr=1:length(FileName)
 %     d4(d4x)=1;
 %     
     % get first time reaching threshold
-    firstthresh = min(d4x)/fs;
+    firstthresh = min(d4x)/1000*fs; % BG edited (originally firstthresh = min(d4x)/fs;)
     res(rrr)=firstthresh;
     
     if produce_txtfile
